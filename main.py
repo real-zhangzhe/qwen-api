@@ -181,11 +181,8 @@ class QwenClient:
                             url, json=payload, headers=headers, stream=True
                         ) as r:
                             r.raise_for_status()
-                            finish_reason = "stop"
                             reasoning_text = ""  # 用于累积 thinking 阶段的内容
                             assistant_content = ""  # 用于累积assistant回复内容
-                            has_sent_content = False  # 标记是否已经开始发送 answer 内容
-                            current_response_id = None  # 当前回复ID
 
                             for line in r.iter_lines(decode_unicode=True):
                                 # 检查标准的 SSE 前缀
@@ -196,13 +193,6 @@ class QwenClient:
                                         break
                                     try:
                                         data = json.loads(data_str)
-
-                                        # 提取response_id
-                                        if "response.created" in data:
-                                            current_response_id = data[
-                                                "response.created"
-                                            ].get("response_id")
-
                                         # 处理 choices 数据
                                         if (
                                             "choices" in data
@@ -226,8 +216,6 @@ class QwenClient:
                                             elif phase == "answer" or (
                                                 phase is None and content
                                             ):
-                                                # 一旦进入 answer 阶段或有内容，标记为已开始
-                                                has_sent_content = True
                                                 assistant_content += (
                                                     content  # 累积assistant回复
                                                 )
@@ -238,12 +226,6 @@ class QwenClient:
                                                     chunk["reasoning"] = reasoning_text
                                                     reasoning_text = ""
                                                 yield f"data: {json.dumps(chunk)}\n\n"
-
-                                            # 3. 处理结束信号 (通常在 answer 阶段的最后一个块)
-                                            if status == "finished":
-                                                finish_reason = delta.get(
-                                                    "finish_reason", "stop"
-                                                )
 
                                     except json.JSONDecodeError:
                                         continue
@@ -274,12 +256,6 @@ class QwenClient:
                                     break
                                 try:
                                     data = json.loads(data_str)
-
-                                    # 提取response_id
-                                    if "response.created" in data:
-                                        current_response_id = data[
-                                            "response.created"
-                                        ].get("response_id")
 
                                     # 处理 choices 数据来构建最终回复
                                     if "choices" in data and len(data["choices"]) > 0:
