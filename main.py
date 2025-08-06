@@ -350,7 +350,7 @@ if __name__ == "__main__":
     # 示例：发送聊天请求
     request = {
         "model": "qwen3-235b-a22b",
-        "messages": [{"role": "user", "content": "你好！"}],
+        "messages": [{"role": "user", "content": "介绍一下马尔克斯的生平"}],
         "stream": False,
     }
 
